@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCN Rent Wise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="logo-mark"></div>
+      <h1>bcn rent wise</h1>
+      <p>predict fair rental prices in barcelona by neighbourhood</p>
+    </header>
+
+    <div class="card form-card">
+      <div class="form-group">
+        <label for="neighbourhood">neighbourhood</label>
+        <div class="select-wrapper">
+          <select id="neighbourhood">
+            <option value="" disabled selected>loading…</option>
+          </select>
+          <svg class="select-arrow" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="surface-slider">
+          surface area
+          <span class="surface-badge"><span id="surface-val">60</span> m²</span>
+        </label>
+        <input type="range" id="surface-slider" min="10" max="300" step="5" value="60">
+        <div class="slider-labels">
+          <span>10 m²</span>
+          <span>300 m²</span>
+        </div>
+        <div class="step-buttons">
+          <button id="dec" class="btn-step" aria-label="decrease">−</button>
+          <button id="inc" class="btn-step" aria-label="increase">+</button>
+        </div>
+      </div>
+
+      <button id="predict-btn" class="btn-primary">
+        <span class="btn-text">predict price</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div id="results" class="card results-card" aria-live="polite">
+      <p id="results-title" class="results-title"></p>
+
+      <div class="metrics">
+        <div class="metric">
+          <span class="metric-label">price per m²</span>
+          <span id="price-m2" class="metric-value"></span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">monthly total</span>
+          <span id="total" class="metric-value"></span>
+        </div>
+        <div class="metric" id="temp-card">
+          <span class="metric-label">market temp</span>
+          <span id="temp" class="metric-value"></span>
+        </div>
+      </div>
+
+      <div id="range-box" class="info-box">
+        <div class="info-row">
+          <span class="info-key">price range</span>
+          <span id="range-val" class="info-val"></span>
+        </div>
+        <div class="info-row">
+          <span id="label-val" class="info-label-text"></span>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <p class="profile-title">neighbourhood profile</p>
+        <div id="profile-grid" class="profile-grid"></div>
+        <p class="profile-note">socioeconomic data from 2023</p>
+      </div>
+    </div>
+
+  </div>
+  <script src="/static/script.js"></script>
+</body>
+</html>
