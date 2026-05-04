@@ -1,18 +1,43 @@
+import os
 from flask import Flask, render_template, jsonify, request
 import joblib
-import pandas as pd
+from openai import OpenAI
 
 app = Flask(__name__)
 
-
-model             = joblib.load('model.pkl')
-le                = joblib.load('label_encoder.pkl')
-features          = joblib.load('features.pkl')
 neighbourhood_data = joblib.load('neighbourhood_data.pkl')
-city_avg          = joblib.load('city_avg.pkl')
+city_avg           = joblib.load('city_avg.pkl')
 
 neighbourhoods = sorted(neighbourhood_data.keys())
 latest_year    = max(city_avg.keys())
+
+_TEMP_LABEL = {
+    'hot':     'above city average — likely to overpay here',
+    'cool':    'below city average — good value area',
+    'neutral': 'around the city average',
+}
+
+_SOCIO_KEYS = ('avg_income', 'employed_pct', 'foreign_pct', 'low_skilled_pct')
+
+def _build_neighbourhood_summary():
+    lines = ['neighbourhood | price_m2 | foreign_pct | avg_income | temp']
+    for name in sorted(neighbourhood_data):
+        row = neighbourhood_data[name]
+        lines.append(
+            f"{name} | {row.get('price_m2', "no_data")} | {round(row.get('foreign_pct', 0), 1)} "
+            f"| {int(round(row.get('avg_income', 0), -2))} | {row.get('temp', "no_data")}"
+        )
+    return '\n'.join(lines)
+
+_SYSTEM_PROMPT = f"""You are a neighbourhood advisor for BCN Rent Wise, a Barcelona rental price tool.
+Help the user find the best neighbourhood. Keep answers under 60 words. Suggest 2–3 neighbourhoods,try to also reason why you chose these neighbourhoods.
+Try to sound like a human, thank you.
+Do not use markdown formatting.
+
+Columns: price_m2 = predicted rent per m², foreign_pct = % foreign residents (higher = more international community), avg_income = annual income per person in €, temp = hot (above avg price) / cool (below avg) / neutral.
+
+{_build_neighbourhood_summary()}"""
+
 
 @app.route('/')
 def index():
@@ -29,7 +54,7 @@ def predict():
         return jsonify({'error': 'no data'}), 400
 
     neighbourhood = data.get('neighbourhood')
-    surface       = data.get('surface', 60)
+    surface = data.get('surface', 60)
 
     if neighbourhood not in neighbourhood_data:
         return jsonify({'error': 'unknown neighbourhood'}), 400
@@ -38,37 +63,54 @@ def predict():
     if not (10 <= surface <= 300):
         return jsonify({'error': 'surface must be between 10 and 300'}), 400
 
-    row     = neighbourhood_data[neighbourhood]
-    enc     = le.transform([neighbourhood])[0]
-    X_new   = pd.DataFrame(
-        [[row[f] for f in features] + [latest_year, enc]],
-        columns=features + ['year', 'neighbourhood_enc']
-    )
-
-    price_m2  = float(model.predict(X_new)[0])
-    total     = price_m2 * surface
+    row      = neighbourhood_data[neighbourhood]
+    price_m2 = row.get('price_m2')
+    if price_m2 is None:
+        return jsonify({'error': 'no price data available for this neighbourhood'}), 422
+    temp     = row.get('temp', 'neutral')
+    total    = price_m2 * surface
     low, high = total * 0.92, total * 1.08
 
-    ratio = price_m2 / city_avg[latest_year]
-    if ratio > 1.10:
-        temp, label = 'hot',     'above city average — likely to overpay here'
-    elif ratio < 0.90:
-        temp, label = 'cool',    'below city average — good value area'
-    else:
-        temp, label = 'neutral', 'around the city average'
-
-    display_data = {k: round(float(v), 2) for k, v in row.items()}
+    display_data = {}
+    for k in _SOCIO_KEYS:
+        if k in row:
+            display_data[k] = round(float(row[k]), 2)
 
     return jsonify({
         'neighbourhood': neighbourhood,
-        'price_m2':      round(price_m2, 1),
+        'price_m2':      price_m2,
         'total':         int(round(total)),
         'low':           int(round(low)),
         'high':          int(round(high)),
         'temp':          temp,
-        'label':         label,
+        'label':         _TEMP_LABEL[temp],
         'data':          display_data,
     })
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
+
+    messages = data.get('messages', [])
+    if not messages:
+        return jsonify({'error': 'no messages'}), 400
+
+    api_key = os.environ.get('DEEPSEEK_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'DEEPSEEK_API_KEY not set on server'}), 500
+
+    try:
+        client = OpenAI(api_key=api_key, base_url='https://api.deepseek.com')
+        response = client.chat.completions.create(
+            model='deepseek-chat',
+            messages=[{'role': 'system', 'content': _SYSTEM_PROMPT}] + messages,
+            max_tokens=120,
+        )
+        return jsonify({'reply': response.choices[0].message.content})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

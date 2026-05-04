@@ -201,18 +201,46 @@ joblib.dump(model,    'model.pkl')
 joblib.dump(le,       'label_encoder.pkl')
 joblib.dump(features, 'features.pkl')
 
-# save latest available socioeconomic data per neighbourhood (for the app)
-latest_year = df_clean['year'].max()
-neighbourhood_data = (
-    df_clean[df_clean['year'] == latest_year]
-    .set_index('neighbourhood')[features]
-    .to_dict(orient='index')
-)
-joblib.dump(neighbourhood_data, 'neighbourhood_data.pkl')
+# pre-compute price_m2 and market temp per neighbourhood so app.py is calculation-free
+city_avg        = df_clean.groupby('year')['price_m2'].mean().to_dict()
+latest_year     = df_clean['year'].max()
+city_avg_latest = city_avg[latest_year]
 
-# save city-wide price average per year (for market temperature)
-city_avg = df_clean.groupby('year')['price_m2'].mean().to_dict()
-joblib.dump(city_avg, 'city_avg.pkl')
+latest_df = df_clean[df_clean['year'] == latest_year]
+latest_df = latest_df.set_index('neighbourhood')
+latest_df = latest_df[features]
+
+neighbourhood_data = {}
+
+for name, row in latest_df.iterrows():
+    enc = le.transform([name])[0]
+
+    row_values = [row[f] for f in features] + [latest_year, enc]
+    col_names  = features + ['year', 'neighbourhood_enc']
+    X          = pd.DataFrame([row_values], columns=col_names)
+
+    price_m2 = float(model.predict(X)[0])
+    price_m2 = round(price_m2, 1)
+
+    ratio = price_m2 / city_avg_latest
+
+    if ratio > 1.10:
+        temp = 'hot'
+    elif ratio < 0.90:
+        temp = 'cool'
+    else:
+        temp = 'neutral'
+
+    socio_data = {f: row[f] for f in features}
+
+    neighbourhood_data[name] = {
+        **socio_data,
+        'price_m2': price_m2,
+        'temp':     temp,
+    }
+
+joblib.dump(neighbourhood_data, 'neighbourhood_data.pkl')
+joblib.dump(city_avg,           'city_avg.pkl')
 
 print(f"\nmodel saved → model.pkl, label_encoder.pkl, features.pkl")
 print(f"app data saved → neighbourhood_data.pkl ({len(neighbourhood_data)} neighbourhoods)")

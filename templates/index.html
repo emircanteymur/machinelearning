@@ -89,6 +89,19 @@
     </div>
 
   </div>
+  <button id="chat-toggle" class="chat-toggle" aria-label="Open neighbourhood advisor">
+    <img src="/static/images/message-regular-full.svg" alt="">
+  </button>
+
+  <div id="chat-panel" class="chat-panel" aria-hidden="true">
+    <div class="chat-header">neighbourhood advisor</div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="ask about neighbourhoods…" autocomplete="off">
+      <button id="chat-send">send</button>
+    </div>
+  </div>
+
   <script src="/static/script.js"></script>
 </body>
 </html>
