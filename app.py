@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request
 import joblib
-from openai import OpenAI
+from chatbot import handle_message
 
 app = Flask(__name__)
 
@@ -18,25 +18,6 @@ _TEMP_LABEL = {
 }
 
 _SOCIO_KEYS = ('avg_income', 'employed_pct', 'foreign_pct', 'low_skilled_pct')
-
-def _build_neighbourhood_summary():
-    lines = ['neighbourhood | price_m2 | foreign_pct | avg_income | temp']
-    for name in sorted(neighbourhood_data):
-        row = neighbourhood_data[name]
-        lines.append(
-            f"{name} | {row.get('price_m2', "no_data")} | {round(row.get('foreign_pct', 0), 1)} "
-            f"| {int(round(row.get('avg_income', 0), -2))} | {row.get('temp', "no_data")}"
-        )
-    return '\n'.join(lines)
-
-_SYSTEM_PROMPT = f"""You are a neighbourhood advisor for BCN Rent Wise, a Barcelona rental price tool.
-Help the user find the best neighbourhood. Keep answers under 60 words. Suggest 2–3 neighbourhoods,try to also reason why you chose these neighbourhoods.
-Try to sound like a human, thank you.
-Do not use markdown formatting.
-
-Columns: price_m2 = predicted rent per m², foreign_pct = % foreign residents (higher = more international community), avg_income = annual income per person in €, temp = hot (above avg price) / cool (below avg) / neutral.
-
-{_build_neighbourhood_summary()}"""
 
 
 @app.route('/')
@@ -97,20 +78,8 @@ def chat():
     if not messages:
         return jsonify({'error': 'no messages'}), 400
 
-    api_key = os.environ.get('DEEPSEEK_API_KEY')
-    if not api_key:
-        return jsonify({'error': 'DEEPSEEK_API_KEY not set on server'}), 500
-
-    try:
-        client = OpenAI(api_key=api_key, base_url='https://api.deepseek.com')
-        response = client.chat.completions.create(
-            model='deepseek-chat',
-            messages=[{'role': 'system', 'content': _SYSTEM_PROMPT}] + messages,
-            max_tokens=120,
-        )
-        return jsonify({'reply': response.choices[0].message.content})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    reply = handle_message(messages, neighbourhood_data)
+    return jsonify({'reply': reply})
 
 if __name__ == '__main__':
     app.run(debug=True)

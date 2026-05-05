@@ -8,12 +8,9 @@ var surfaceLabel = document.getElementById('surface-val');
 function updateSlider() {
   var min = 10;
   var max = 300;
-  // Work out how far along the slider the handle is as a percentage
   var percentage = ((slider.value - min) / (max - min)) * 100;
   var pct = percentage + '%';
-  // Paint the left side red and the right side grey to show the filled portion
   slider.style.background = 'linear-gradient(to right, #c41e3a 0%, #c41e3a ' + pct + ', #e2e8f0 ' + pct + ', #e2e8f0 100%)';
-  // Also update the number shown next to the label
   surfaceLabel.textContent = slider.value;
 }
 
@@ -50,14 +47,12 @@ updateSlider();
 function loadNeighbourhoods() {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', '/api/neighbourhoods');
-  // This function runs when the server replies
   xhr.onload = function () {
     if (xhr.status === 200) {
       // Convert the JSON text the server sent into a JavaScript array
       var neighbourhoods = JSON.parse(xhr.responseText);
       var dropdown = document.getElementById('neighbourhood');
-      dropdown.innerHTML = ''; // clear the placeholder option
-      // Create one <option> element for each neighbourhood and add it to the dropdown
+      dropdown.innerHTML = '';
       for (var i = 0; i < neighbourhoods.length; i++) {
         var option = document.createElement('option');
         option.value = neighbourhoods[i];
@@ -76,7 +71,6 @@ function loadNeighbourhoods() {
 // server, and calls showResults() with the prediction that comes back
 function predict() {
   var button = document.getElementById('predict-btn');
-  // Disable the button while the request is in flight so the user can't click twice
   button.disabled = true;
   button.classList.add('loading');
 
@@ -85,15 +79,14 @@ function predict() {
 
   var xhr = new XMLHttpRequest();
   xhr.open('POST', '/api/predict');
-  xhr.setRequestHeader('Content-Type', 'application/json'); // tell the server we're sending JSON
+  xhr.setRequestHeader('Content-Type', 'application/json');
 
   // Runs when the server replies (success or error)
   xhr.onload = function () {
     if (xhr.status === 200) {
       var data = JSON.parse(xhr.responseText);
-      showResults(data); // hand the result to the display function
+      showResults(data);
     } else {
-      // The server replied with an error message, so show it to the user
       var errorData = JSON.parse(xhr.responseText);
       alert(errorData.error || 'prediction failed');
     }
@@ -132,14 +125,11 @@ function formatPercent(v) {
 
 // Takes the prediction object from the server and fills in all the result fields on the page
 function showResults(data) {
-  // Update the heading above the results card
   document.getElementById('results-title').textContent = 'predicted price for ' + data.neighbourhood;
 
-  // Fill in the three main metric values
   document.getElementById('price-m2').textContent = data.price_m2 + ' €/m²';
   document.getElementById('total').textContent = data.total.toLocaleString() + ' €/mo';
 
-  // Set the market temperature text and colour class (hot / cool / neutral)
   var tempValueEl = document.getElementById('temp');
   tempValueEl.textContent = tempEmoji[data.temp] + ' ' + data.temp;
   tempValueEl.className = 'metric-value temp-' + data.temp;
@@ -197,7 +187,6 @@ function showResults(data) {
     grid.appendChild(card);
   }
 
-  // Make the results section visible and scroll it into view smoothly
   var resultsSection = document.getElementById('results');
   resultsSection.classList.add('visible');
   resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -217,9 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 var chatHistory = [];
 
-var WELCOME_MSG = 'Hi! I can suggest Barcelona neighbourhoods based on your needs. ' +
-  'Tell me your budget (e.g. €800/month for 60 m²), and any preferences like ' +
-  'affordable areas, international community, or quieter streets.';
+var WELCOME_MSG = "Hi! I’m your personal assistant, here to help you find the perfect neighborhood for you. To get started, could you tell me about your budget and whether you’d prefer to live in a more international area or a more local neighborhood?";
 
 function appendChatMsg(role, text) {
   var el = document.createElement('div');
@@ -241,6 +228,7 @@ function sendChatMessage() {
   input.value = '';
   appendChatMsg('user', text);
   chatHistory.push({ role: 'user', content: text });
+  document.getElementById('chat-restart').classList.add('active');
 
   sendBtn.disabled = true;
 
@@ -273,7 +261,14 @@ function sendChatMessage() {
   xhr.send(JSON.stringify({ messages: chatHistory }));
 }
 
-// Sets up the chat toggle button, send button, and Enter-key shortcut
+function resetChat() {
+  chatHistory = [];
+  document.getElementById('chat-messages').innerHTML = '';
+  document.getElementById('chat-restart').classList.remove('active');
+  appendChatMsg('bot', WELCOME_MSG);
+}
+
+// Sets up the chat toggle button, send button, Enter-key shortcut, and restart button
 function initChat() {
   var toggle = document.getElementById('chat-toggle');
   var panel = document.getElementById('chat-panel');
@@ -294,4 +289,6 @@ function initChat() {
   document.getElementById('chat-input').addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { sendChatMessage(); }
   });
+
+  document.getElementById('chat-restart').addEventListener('click', resetChat);
 }
