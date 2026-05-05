@@ -1,63 +1,46 @@
-// ── SLIDER SETUP ──────────────────────────────────────────────────────────────
+// ── SLIDER ───────────────────────────────────────────────────────────────────
 
-// Get the slider element and the label that shows the current number
 var slider = document.getElementById('surface-slider');
 var surfaceLabel = document.getElementById('surface-val');
 
-// Updates the slider's coloured fill and the number badge whenever the value changes
 function updateSlider() {
-  var min = 10;
-  var max = 300;
-  var percentage = ((slider.value - min) / (max - min)) * 100;
-  var pct = percentage + '%';
-  slider.style.background = 'linear-gradient(to right, #c41e3a 0%, #c41e3a ' + pct + ', #e2e8f0 ' + pct + ', #e2e8f0 100%)';
+  var min = 10, max = 300;
+  var pct = ((slider.value - min) / (max - min)) * 100 + '%';
+  slider.style.background =
+    'linear-gradient(to right, #c41e3a 0%, #c41e3a ' + pct + ', #e2e8f0 ' + pct + ', #e2e8f0 100%)';
   surfaceLabel.textContent = slider.value;
 }
 
-// Call updateSlider every time the user drags the handle
-slider.addEventListener('input', function () {
-  updateSlider();
-});
+slider.addEventListener('input', updateSlider);
 
-// The minus button decreases the value by 5, but won't go below 10
 document.getElementById('dec').addEventListener('click', function () {
-  var newValue = parseInt(slider.value) - 5;
-  if (newValue >= 10) {
-    slider.value = newValue;
-    updateSlider();
-  }
+  var v = parseInt(slider.value) - 5;
+  if (v >= 10) { slider.value = v; updateSlider(); }
 });
 
-// The plus button increases the value by 5, but won't go above 300
 document.getElementById('inc').addEventListener('click', function () {
-  var newValue = parseInt(slider.value) + 5;
-  if (newValue <= 300) {
-    slider.value = newValue;
-    updateSlider();
-  }
+  var v = parseInt(slider.value) + 5;
+  if (v <= 300) { slider.value = v; updateSlider(); }
 });
 
-// Run once on page load so the slider looks correct straight away
 updateSlider();
 
 
 // ── LOAD NEIGHBOURHOODS ───────────────────────────────────────────────────────
 
-// Fetches the list of neighbourhood names from the server and fills the dropdown
 function loadNeighbourhoods() {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', '/api/neighbourhoods');
   xhr.onload = function () {
     if (xhr.status === 200) {
-      // Convert the JSON text the server sent into a JavaScript array
-      var neighbourhoods = JSON.parse(xhr.responseText);
+      var list = JSON.parse(xhr.responseText);
       var dropdown = document.getElementById('neighbourhood');
       dropdown.innerHTML = '';
-      for (var i = 0; i < neighbourhoods.length; i++) {
-        var option = document.createElement('option');
-        option.value = neighbourhoods[i];
-        option.textContent = neighbourhoods[i];
-        dropdown.appendChild(option);
+      for (var i = 0; i < list.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = list[i];
+        opt.textContent = list[i];
+        dropdown.appendChild(opt);
       }
     }
   };
@@ -67,133 +50,95 @@ function loadNeighbourhoods() {
 
 // ── PREDICT ───────────────────────────────────────────────────────────────────
 
-// Reads the user's chosen neighbourhood and surface area, sends them to the
-// server, and calls showResults() with the prediction that comes back
 function predict() {
   var button = document.getElementById('predict-btn');
   button.disabled = true;
   button.classList.add('loading');
 
-  var selectedNeighbourhood = document.getElementById('neighbourhood').value;
-  var selectedSurface = parseInt(slider.value);
-
   var xhr = new XMLHttpRequest();
   xhr.open('POST', '/api/predict');
   xhr.setRequestHeader('Content-Type', 'application/json');
 
-  // Runs when the server replies (success or error)
   xhr.onload = function () {
+    button.disabled = false;
+    button.classList.remove('loading');
     if (xhr.status === 200) {
-      var data = JSON.parse(xhr.responseText);
-      showResults(data);
+      showResults(JSON.parse(xhr.responseText));
     } else {
-      var errorData = JSON.parse(xhr.responseText);
-      alert(errorData.error || 'prediction failed');
+      var err = JSON.parse(xhr.responseText);
+      alert(err.error || 'Prediction failed');
     }
-    // Re-enable the button either way
-    button.disabled = false;
-    button.classList.remove('loading');
   };
 
-  // Runs if the network itself failed (e.g. server not started)
   xhr.onerror = function () {
-    alert('network error — is the server running?');
     button.disabled = false;
     button.classList.remove('loading');
+    alert('Network error — is the server running?');
   };
 
-  // Send the user's choices as a JSON string in the request body
   xhr.send(JSON.stringify({
-    neighbourhood: selectedNeighbourhood,
-    surface: selectedSurface
+    neighbourhood: document.getElementById('neighbourhood').value,
+    surface: parseInt(slider.value)
   }));
 }
 
-var tempEmoji = {
-  hot:     '🔥',
-  cool:    '❄️',
-  neutral: '⚖️'
-};
+var tempEmoji = { hot: '🔥', cool: '❄️', neutral: '⚖️' };
 
-function formatIncome(v) {
-  return '€' + Math.round(v).toLocaleString();
-}
+function formatIncome(v)  { return '€' + Math.round(v).toLocaleString(); }
+function formatPercent(v) { return v + '%'; }
 
-function formatPercent(v) {
-  return v + '%';
-}
-
-// Takes the prediction object from the server and fills in all the result fields on the page
 function showResults(data) {
-  document.getElementById('results-title').textContent = 'predicted price for ' + data.neighbourhood;
+  // Top row
+  document.getElementById('results-title').textContent = data.neighbourhood;
 
+  var badge = document.getElementById('temp-badge');
+  badge.textContent = tempEmoji[data.temp] + ' ' + data.temp;
+  badge.className = 'temp-badge temp-' + data.temp;
+
+  // Prices
   document.getElementById('price-m2').textContent = data.price_m2 + ' €/m²';
-  document.getElementById('total').textContent = data.total.toLocaleString() + ' €/mo';
+  document.getElementById('total').textContent = '€' + data.total.toLocaleString() + '/mo';
 
-  var tempValueEl = document.getElementById('temp');
-  tempValueEl.textContent = tempEmoji[data.temp] + ' ' + data.temp;
-  tempValueEl.className = 'metric-value temp-' + data.temp;
-
-  // Also colour the temperature card's background to match
-  var tempCardEl = document.getElementById('temp-card');
-  tempCardEl.className = 'metric ' + data.temp;
-
-  // Show the price range and label in the info box
+  // Range
   document.getElementById('range-val').textContent =
-    data.low.toLocaleString() + ' – ' + data.high.toLocaleString() + ' €/month';
+    data.low.toLocaleString() + ' – ' + data.high.toLocaleString() + ' €/mo';
   document.getElementById('label-val').textContent = data.label;
+  document.getElementById('range-box').className = 'range-box temp-' + data.temp;
 
-  var rangeBox = document.getElementById('range-box');
-  rangeBox.className = 'info-box ' + data.temp;
-
+  // Profile grid
   var grid = document.getElementById('profile-grid');
   grid.innerHTML = '';
 
-  // These are the four stats we want to show in the grid
   var stats = [
-    { key: 'avg_income',      label: 'avg. income / person', type: 'income'  },
-    { key: 'employed_pct',    label: 'employment rate',       type: 'percent' },
-    { key: 'foreign_pct',     label: 'foreign population',    type: 'percent' },
-    { key: 'low_skilled_pct', label: 'low-skilled workers',   type: 'percent' }
+    { key: 'avg_income',      label: 'Avg. Income',    icon: '💶', type: 'income'  },
+    { key: 'employed_pct',    label: 'Employment',     icon: '💼', type: 'percent' },
+    { key: 'foreign_pct',     label: 'International',  icon: '🌍', type: 'percent' },
+    { key: 'low_skilled_pct', label: 'Low-Skilled',    icon: '📊', type: 'percent' }
   ];
 
   for (var i = 0; i < stats.length; i++) {
-    var stat = stats[i];
-    var value = data.data[stat.key];
-    if (value == null) { continue; } // skip if the server didn't send this stat
-
-    // Format the value depending on whether it's money or a percentage
-    var formattedValue;
-    if (stat.type === 'income') {
-      formattedValue = formatIncome(value);
-    } else {
-      formattedValue = formatPercent(value);
-    }
-
-    // Create a small card with a label and value and add it to the grid
+    var s = stats[i];
+    var val = data.data[s.key];
+    if (val == null) continue;
+    var fmt = s.type === 'income' ? formatIncome(val) : formatPercent(val);
     var card = document.createElement('div');
     card.className = 'profile-stat';
-
-    var labelEl = document.createElement('span');
-    labelEl.className = 'profile-stat-label';
-    labelEl.textContent = stat.label;
-
-    var valueEl = document.createElement('span');
-    valueEl.className = 'profile-stat-value';
-    valueEl.textContent = formattedValue;
-
-    card.appendChild(labelEl);
-    card.appendChild(valueEl);
+    card.innerHTML =
+      '<span class="stat-icon">' + s.icon + '</span>' +
+      '<span class="profile-stat-label">' + s.label + '</span>' +
+      '<span class="profile-stat-value">' + fmt + '</span>';
     grid.appendChild(card);
   }
 
-  var resultsSection = document.getElementById('results');
-  resultsSection.classList.add('visible');
-  resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Show results
+  document.getElementById('results-empty').style.display = 'none';
+  document.getElementById('results-content').style.display = 'flex';
+
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 
-// ── PAGE LOAD ─────────────────────────────────────────────────────────────────
+// ── PAGE INIT ─────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', function () {
   loadNeighbourhoods();
@@ -205,8 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── CHATBOT ───────────────────────────────────────────────────────────────────
 
 var chatHistory = [];
-
-var WELCOME_MSG = "Hi! I’m your personal assistant, here to help you find the perfect neighborhood for you. To get started, could you tell me about your budget and whether you’d prefer to live in a more international area or a more local neighborhood?";
+var WELCOME_MSG = "Hi! I'm your neighbourhood advisor. Tell me your budget and what kind of area you're looking for — international, quiet, central — and I'll help you find the right fit in Barcelona.";
 
 function appendChatMsg(role, text) {
   var el = document.createElement('div');
@@ -218,18 +162,16 @@ function appendChatMsg(role, text) {
   return el;
 }
 
-// Reads the text the user typed, sends it to the server, and displays the reply
 function sendChatMessage() {
   var input = document.getElementById('chat-input');
   var sendBtn = document.getElementById('chat-send');
   var text = input.value.trim();
-  if (!text) { return; }
+  if (!text) return;
 
   input.value = '';
   appendChatMsg('user', text);
   chatHistory.push({ role: 'user', content: text });
   document.getElementById('chat-restart').classList.add('active');
-
   sendBtn.disabled = true;
 
   var typing = appendChatMsg('bot', '…');
@@ -239,20 +181,18 @@ function sendChatMessage() {
   xhr.open('POST', '/api/chat');
   xhr.setRequestHeader('Content-Type', 'application/json');
 
-  // Replace the "…" bubble with the actual reply when the server responds
   xhr.onload = function () {
     var data = JSON.parse(xhr.responseText);
-    var reply = data.reply || data.error || 'something went wrong';
+    var reply = data.reply || data.error || 'Something went wrong';
     typing.textContent = reply;
     typing.classList.remove('typing');
-    chatHistory.push({ role: 'assistant', content: reply }); // save reply to history
+    chatHistory.push({ role: 'assistant', content: reply });
     sendBtn.disabled = false;
     input.focus();
   };
 
-  // Show an error message in the chat bubble if the network failed
   xhr.onerror = function () {
-    typing.textContent = 'network error — is the server running?';
+    typing.textContent = 'Network error — is the server running?';
     typing.classList.remove('typing');
     sendBtn.disabled = false;
     input.focus();
@@ -268,10 +208,9 @@ function resetChat() {
   appendChatMsg('bot', WELCOME_MSG);
 }
 
-// Sets up the chat toggle button, send button, Enter-key shortcut, and restart button
 function initChat() {
   var toggle = document.getElementById('chat-toggle');
-  var panel = document.getElementById('chat-panel');
+  var panel  = document.getElementById('chat-panel');
   var opened = false;
 
   toggle.addEventListener('click', function () {
@@ -285,10 +224,8 @@ function initChat() {
   });
 
   document.getElementById('chat-send').addEventListener('click', sendChatMessage);
-
   document.getElementById('chat-input').addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { sendChatMessage(); }
+    if (e.key === 'Enter') sendChatMessage();
   });
-
   document.getElementById('chat-restart').addEventListener('click', resetChat);
 }
