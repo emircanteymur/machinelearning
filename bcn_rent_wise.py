@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import LabelEncoder
@@ -42,7 +42,6 @@ socio_wide = socio.pivot_table(
 ).reset_index()
 socio_wide.columns.name = None
 
-# detect actual column names (encoding-agnostic partial match)
 def find_col(df, keyword):
     matches = [c for c in df.columns if keyword.lower() in c.lower()]
     return matches[0] if matches else None
@@ -80,18 +79,15 @@ rental_long['price_m2'] = rental_long['price_m2'].replace('-', np.nan)
 rental_long['price_m2'] = pd.to_numeric(rental_long['price_m2'], errors='coerce')
 rental_long = rental_long.dropna(subset=['price_m2'])
 
-# fix neighbourhood names to match socio dataset
 name_fixes = {
-    'el Poble Sec - AEI Parc Montjuïc': 'el Poble Sec',
-    'el Poble Sec - AEI Parc MontjuÃ¯c':    'el Poble Sec',
-    'la Marina del Prat Vermell - AEI Zona Franca': 'la Marina del Prat Vermell',
-    'Sants - Badal':              'Sants-Badal',
-    'Sant Gervasi - la Bonanova': 'Sant Gervasi-la Bonanova',
-    'Sant Gervasi - Galvany':     'Sant Gervasi-Galvany',
+    'el Poble Sec - AEI Parc Montjuïc':             'el Poble Sec',
+    'el Poble Sec - AEI Parc MontjuÃ¯c':            'el Poble Sec',
+    'la Marina del Prat Vermell - AEI Zona Franca':  'la Marina del Prat Vermell',
+    'Sants - Badal':                                 'Sants-Badal',
+    'Sant Gervasi - la Bonanova':                    'Sant Gervasi-la Bonanova',
+    'Sant Gervasi - Galvany':                        'Sant Gervasi-Galvany',
 }
 rental_long['neighbourhood'] = rental_long['Territory'].replace(name_fixes)
-
-# keep only years covered by socio data
 rental_long = rental_long[rental_long['year'].between(2015, 2023)]
 
 # ── 4. merge ──────────────────────────────────────────────────────────────────
@@ -107,7 +103,6 @@ print(f"\nmerged shape    : {df.shape}")
 print(f"neighbourhoods  : {df['neighbourhood'].nunique()}")
 print(f"years covered   : {sorted(df['year'].unique())}")
 
-# unmatched check
 rental_hoods = set(rental_long['neighbourhood'].unique())
 socio_hoods  = set(socio_wide['neighbourhood'].unique())
 unmatched = rental_hoods - socio_hoods
@@ -127,7 +122,6 @@ features = ['avg_income', 'employed_pct', 'foreign_pct', 'low_skilled_pct']
 df_clean = df.dropna(subset=features + ['price_m2']).copy()
 print(f"\nrows after dropping nulls: {len(df_clean)}")
 
-# remove outliers in price (IQR)
 q1, q3 = df_clean['price_m2'].quantile([0.25, 0.75])
 iqr = q3 - q1
 before = len(df_clean)
@@ -149,7 +143,13 @@ print(f"\ntrain: {len(X_train)} rows  |  test: {len(X_test)} rows")
 
 # ── 8. train ─────────────────────────────────────────────────────────────────
 
-model = LinearRegression()
+model = RandomForestRegressor(
+    n_estimators=100,
+    criterion='squared_error',   # matches iris example's use of criterion param
+    max_depth=None,
+    min_samples_leaf=2,
+    random_state=1               # kept consistent with iris example
+)
 model.fit(X_train, y_train)
 
 # ── 9. evaluate ───────────────────────────────────────────────────────────────
@@ -158,9 +158,18 @@ y_pred = model.predict(X_test)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 r2   = r2_score(y_test, y_pred)
 
+# overfitting check (from iris example pattern)
+r2_train = r2_score(y_train, model.predict(X_train))
+
 print(f"\n── results ──")
-print(f"rmse : {rmse:.3f} €/m²")
-print(f"r²   : {r2:.3f}")
+print(f"rmse        : {rmse:.3f} €/m²")
+print(f"r² (test)   : {r2:.3f}")
+print(f"r² (train)  : {r2_train:.3f}")
+print(f"mismatched samples: {(abs(y_test - y_pred) > 1.0).sum()}")
+
+# feature importance (RF bonus over linear regression)
+importances = pd.Series(model.feature_importances_, index=X.columns)
+print(f"\nfeature importances:\n{importances.sort_values(ascending=False).round(3)}")
 
 results = pd.DataFrame({
     'neighbourhood': df_clean.loc[y_test.index, 'neighbourhood'].values,
@@ -184,7 +193,6 @@ def predict_price(neighbourhood, year, avg_income, employed_pct, foreign_pct, lo
     )
     return round(model.predict(X_new)[0], 2)
 
-# demo using a real row
 demo = df_clean[df_clean['year'] == 2023].iloc[0]
 price = predict_price(
     demo['neighbourhood'], 2023,
@@ -195,24 +203,37 @@ print(f"\ndemo prediction for '{demo['neighbourhood']}' in 2023:")
 print(f"  predicted : {price} €/m²")
 print(f"  actual    : {demo['price_m2']} €/m²")
 
-# ── 11. save model + neighbourhood lookup for the app ────────────────────────
+# ── 11. save ──────────────────────────────────────────────────────────────────
 
 joblib.dump(model,    'model.pkl')
 joblib.dump(le,       'label_encoder.pkl')
 joblib.dump(features, 'features.pkl')
 
-# save latest available socioeconomic data per neighbourhood (for the app)
-latest_year = df_clean['year'].max()
-neighbourhood_data = (
-    df_clean[df_clean['year'] == latest_year]
-    .set_index('neighbourhood')[features]
-    .to_dict(orient='index')
-)
-joblib.dump(neighbourhood_data, 'neighbourhood_data.pkl')
+city_avg        = df_clean.groupby('year')['price_m2'].mean().to_dict()
+latest_year     = df_clean['year'].max()
+city_avg_latest = city_avg[latest_year]
 
-# save city-wide price average per year (for market temperature)
-city_avg = df_clean.groupby('year')['price_m2'].mean().to_dict()
-joblib.dump(city_avg, 'city_avg.pkl')
+latest_df = df_clean[df_clean['year'] == latest_year].set_index('neighbourhood')[features]
+
+neighbourhood_data = {}
+
+for name, row in latest_df.iterrows():
+    enc = le.transform([name])[0]
+    row_values = [row[f] for f in features] + [latest_year, enc]
+    X_nb = pd.DataFrame([row_values], columns=features + ['year', 'neighbourhood_enc'])
+
+    price_m2 = round(float(model.predict(X_nb)[0]), 1)
+    ratio    = price_m2 / city_avg_latest
+    temp     = 'hot' if ratio > 1.10 else 'cool' if ratio < 0.90 else 'neutral'
+
+    neighbourhood_data[name] = {
+        **{f: row[f] for f in features},
+        'price_m2': price_m2,
+        'temp':     temp,
+    }
+
+joblib.dump(neighbourhood_data, 'neighbourhood_data.pkl')
+joblib.dump(city_avg,           'city_avg.pkl')
 
 print(f"\nmodel saved → model.pkl, label_encoder.pkl, features.pkl")
 print(f"app data saved → neighbourhood_data.pkl ({len(neighbourhood_data)} neighbourhoods)")

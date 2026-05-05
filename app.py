@@ -1,73 +1,85 @@
-import streamlit as st
+import os
+from flask import Flask, render_template, jsonify, request
 import joblib
-import numpy as np
-import pandas as pd
+from chatbot import handle_message
 
-# ── load saved artifacts ──────────────────────────────────────────────────────
+app = Flask(__name__)
 
-@st.cache_resource
-def load_artifacts():
-    model             = joblib.load('model.pkl')
-    le                = joblib.load('label_encoder.pkl')
-    features          = joblib.load('features.pkl')
-    neighbourhood_data = joblib.load('neighbourhood_data.pkl')
-    city_avg          = joblib.load('city_avg.pkl')
-    return model, le, features, neighbourhood_data, city_avg
-
-model, le, features, neighbourhood_data, city_avg = load_artifacts()
+neighbourhood_data = joblib.load('neighbourhood_data.pkl')
+city_avg           = joblib.load('city_avg.pkl')
 
 neighbourhoods = sorted(neighbourhood_data.keys())
-latest_year = max(city_avg.keys())
+latest_year    = max(city_avg.keys())
 
-# ── ui ───────────────────────────────────────────────────────────────────────
+_TEMP_LABEL = {
+    'hot':     'above city average — likely to overpay here',
+    'cool':    'below city average — good value area',
+    'neutral': 'around the city average',
+}
 
-st.title("bcn rent wise")
-st.caption("predict fair rental prices in barcelona by neighbourhood")
+_SOCIO_KEYS = ('avg_income', 'employed_pct', 'foreign_pct', 'low_skilled_pct')
 
-st.divider()
 
-neighbourhood = st.selectbox("neighbourhood", neighbourhoods)
-surface = st.number_input("surface area (m²)", min_value=10, max_value=300, value=60, step=5)
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-st.divider()
+@app.route('/api/neighbourhoods')
+def get_neighbourhoods():
+    return jsonify(neighbourhoods)
 
-if st.button("predict price", type="primary"):
-    row = neighbourhood_data[neighbourhood]
-    enc = le.transform([neighbourhood])[0]
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
 
-    X_new = pd.DataFrame(
-        [[row[f] for f in features] + [latest_year, enc]],
-        columns=features + ['year', 'neighbourhood_enc']
-    )
+    neighbourhood = data.get('neighbourhood')
+    surface = data.get('surface', 60)
 
-    price_m2 = model.predict(X_new)[0]
+    if neighbourhood not in neighbourhood_data:
+        return jsonify({'error': 'unknown neighbourhood'}), 400
+
+    surface = float(surface)
+    if not (10 <= surface <= 300):
+        return jsonify({'error': 'surface must be between 10 and 300'}), 400
+
+    row      = neighbourhood_data[neighbourhood]
+    price_m2 = row.get('price_m2')
+    if price_m2 is None:
+        return jsonify({'error': 'no price data available for this neighbourhood'}), 422
+    temp     = row.get('temp', 'neutral')
     total    = price_m2 * surface
+    low, high = total * 0.92, total * 1.08
 
-    # price range ±8%
-    low  = total * 0.92
-    high = total * 1.08
+    display_data = {}
+    for k in _SOCIO_KEYS:
+        if k in row:
+            display_data[k] = round(float(row[k]), 2)
 
-    # market temperature vs city average
-    city_mean = city_avg[latest_year]
-    ratio = price_m2 / city_mean
+    return jsonify({
+        'neighbourhood': neighbourhood,
+        'price_m2':      price_m2,
+        'total':         int(round(total)),
+        'low':           int(round(low)),
+        'high':          int(round(high)),
+        'temp':          temp,
+        'label':         _TEMP_LABEL[temp],
+        'data':          display_data,
+    })
 
-    if ratio > 1.10:
-        temp, color, emoji = "hot 🔥",    "red",    "above average — likely to overpay here"
-    elif ratio < 0.90:
-        temp, color, emoji = "cool ❄️",   "blue",   "below average — good value area"
-    else:
-        temp, color, emoji = "neutral ⚖️", "orange", "around the city average"
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'no data'}), 400
 
-    # results
-    st.subheader(f"predicted price for {neighbourhood}")
+    messages = data.get('messages', [])
+    if not messages:
+        return jsonify({'error': 'no messages'}), 400
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("price per m²",    f"{price_m2:.1f} €/m²")
-    col2.metric("estimated total", f"{total:.0f} €/month")
-    col3.metric("market temp",     temp)
+    reply = handle_message(messages, neighbourhood_data)
+    return jsonify({'reply': reply})
 
-    st.info(f"**price range:** {low:.0f} – {high:.0f} €/month  \n**{emoji}**")
-
-    # show the socioeconomic data used
-    with st.expander("data used for this prediction"):
-        st.write(pd.DataFrame([row], index=[neighbourhood]).T.rename(columns={neighbourhood: "value"}))
+if __name__ == '__main__':
+    app.run(debug=True)
