@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── CHATBOT ───────────────────────────────────────────────────────────────────
 
 var chatHistory = [];
-var WELCOME_MSG = "Hi! I'm your neighbourhood advisor. Tell me your budget and what kind of area you're looking for — international, quiet, central — and I'll help you find the right fit in Barcelona.";
+var WELCOME_MSG = "Hey! I'm your Barcelona neighbourhood advisor. Share your budget and the kind of vibe you're after, and I'll point you to the best fit. Type 'skip' at any point if a question doesn't apply to you.";
 
 function appendChatMsg(role, text) {
   var el = document.createElement('div');
