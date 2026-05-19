@@ -68,11 +68,14 @@
 
         <div class="field-group">
           <label class="field-label" for="neighbourhood"><span>Neighbourhood</span></label>
-          <div class="select-wrapper">
-            <select id="neighbourhood">
-              <option value="" disabled selected>Loading…</option>
-            </select>
-            <svg class="select-arrow" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="select-tooltip-wrap">
+            <div class="select-wrapper">
+              <select id="neighbourhood">
+                <option value="" disabled selected>Loading…</option>
+              </select>
+              <svg class="select-arrow" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="city-tooltip" id="predict-tooltip">⚠️ Please select a neighbourhood first</div>
           </div>
         </div>
 
@@ -106,7 +109,7 @@
       <div id="results" class="panel results-panel" aria-live="polite">
         <div id="results-empty" class="results-empty">
           <div class="empty-graphic">
-            <svg viewBox="0 0 64 64" fill="none"><rect x="8" y="28" width="48" height="28" rx="3" stroke="currentColor" stroke-width="2"/><path d="M2 30L32 8L62 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="24" y="40" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+            <img src="/static/images/house-regular-full.svg">
           </div>
           <p class="empty-title">Your estimate will appear here</p>
           <p class="empty-sub">Select a neighbourhood and surface area,<br>then click <strong>Predict Price</strong></p>
@@ -160,14 +163,20 @@
       <div class="compare-select-row">
         <div class="compare-select-group">
           <label>Neighbourhood 1</label>
-          <div class="compare-select-wrap">
-            <select id="cmp-1"><option value="" disabled selected>Choose…</option></select>
+          <div class="select-tooltip-wrap">
+            <div class="compare-select-wrap">
+              <select id="cmp-1"><option value="" disabled selected>Choose…</option></select>
+            </div>
+            <div class="city-tooltip" id="cmp-1-tooltip">⚠️ Please select a neighbourhood</div>
           </div>
         </div>
         <div class="compare-select-group">
           <label>Neighbourhood 2</label>
-          <div class="compare-select-wrap">
-            <select id="cmp-2"><option value="" disabled selected>Choose…</option></select>
+          <div class="select-tooltip-wrap">
+            <div class="compare-select-wrap">
+              <select id="cmp-2"><option value="" disabled selected>Choose…</option></select>
+            </div>
+            <div class="city-tooltip" id="cmp-2-tooltip">⚠️ Please select a neighbourhood</div>
           </div>
         </div>
         <div class="compare-select-group">
@@ -202,7 +211,7 @@
 
   <!-- CHAT TOGGLE -->
   <button id="chat-toggle" class="chat-toggle" aria-label="Open advisor">
-    <svg class="chat-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <img src="/static/images/message-regular-full (3).svg">
     <span class="chat-toggle-text">Ask me anything</span>
   </button>
 

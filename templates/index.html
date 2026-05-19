@@ -30,12 +30,15 @@
       <div class="hero-eyebrow">City Rental Intelligence</div>
       <h1 class="hero-title">Discover your <em>perfect</em><br>neighbourhood.</h1>
       <p class="hero-sub">ML predictions built on real socioeconomic data — so you always know if a price is fair before you sign.</p>
-      <div class="hero-search">
-        <input type="text" placeholder="Search a city or neighbourhood…" id="hero-search-input" onkeydown="heroSearch(event)">
-        <button onclick="heroSearchBtn()">
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="2"/><path d="M15 15l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Search
-        </button>
+      <div class="hero-search-wrap">
+        <div class="hero-search">
+          <input type="text" placeholder="Search a city or neighbourhood…" id="hero-search-input" onkeydown="heroSearch(event)">
+          <button onclick="heroSearchBtn()">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="2"/><path d="M15 15l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Search
+          </button>
+        </div>
+        <div class="city-tooltip" id="search-tooltip">Unfortunately hat city isn't available yet</div>
       </div>
 
     </div>
@@ -51,7 +54,7 @@
 
       <!-- Barcelona — LIVE -->
       <a class="city-card" href="/barcelona">
-        <div class="city-card-img" style="background-image:url('/static/images/images.jpg')"></div>
+        <div class="city-card-img" style="background-image:url('https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=80')"></div>
         <div class="city-card-overlay"></div>
         <div class="city-card-body">
           <div class="city-card-country">Spain</div>
@@ -65,46 +68,55 @@
       </a>
 
       <!-- Paris -->
-      <a class="city-card locked" href="/coming-soon/Paris">
-        <div class="city-card-img" style="background-image: url(/static/images/paris.jpg)"></div>
-        <div class="city-card-overlay"></div>
-        <div class="city-card-body">
-          <div class="city-card-country">France</div>
-          <div class="city-card-name">Paris</div>
-          <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+      <div class="city-card-wrap">
+        <div class="city-card locked" onclick="showComingSoon(this.parentElement)">
+          <div class="city-card-img" style="background-image:url('https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80')"></div>
+          <div class="city-card-overlay"></div>
+          <div class="city-card-body">
+            <div class="city-card-country">France</div>
+            <div class="city-card-name">Paris</div>
+            <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+          </div>
+          <div class="city-card-lock">
+            <img src="/static/images/lock-solid-full.svg">
+          </div>
         </div>
-        <div class="city-card-lock">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
-        </div>
-      </a>
+        <div class="city-tooltip">Coming soon, not available yet</div>
+      </div>
 
       <!-- London -->
-      <a class="city-card locked" href="/coming-soon/London">
-        <div class="city-card-img" style="background-image:url('/static/images/london-uk-hero.CCbex9_q.jpg')"></div>
-        <div class="city-card-overlay"></div>
-        <div class="city-card-body">
-          <div class="city-card-country">United Kingdom</div>
-          <div class="city-card-name">London</div>
-          <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+      <div class="city-card-wrap">
+        <div class="city-card locked" onclick="showComingSoon(this.parentElement)">
+          <div class="city-card-img" style="background-image:url('https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&q=80')"></div>
+          <div class="city-card-overlay"></div>
+          <div class="city-card-body">
+            <div class="city-card-country">United Kingdom</div>
+            <div class="city-card-name">London</div>
+            <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+          </div>
+          <div class="city-card-lock">
+            <img src="/static/images/lock-solid-full.svg">
+          </div>
         </div>
-        <div class="city-card-lock">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
-        </div>
-      </a>
+        <div class="city-tooltip">Coming soon, not available yet</div>
+      </div>
 
       <!-- Rome -->
-      <a class="city-card locked" href="/coming-soon/Rome">
-        <div class="city-card-img" style="background-image:url('/static/images/afmqgg5h0jl9wnr1dfmf.jpg')"></div>
-        <div class="city-card-overlay"></div>
-        <div class="city-card-body">
-          <div class="city-card-country">Italy</div>
-          <div class="city-card-name">Rome</div>
-          <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+      <div class="city-card-wrap">
+        <div class="city-card locked" onclick="showComingSoon(this.parentElement)">
+          <div class="city-card-img" style="background-image:url('https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&q=80')"></div>
+          <div class="city-card-overlay"></div>
+          <div class="city-card-body">
+            <div class="city-card-country">Italy</div>
+            <div class="city-card-name">Rome</div>
+            <div class="city-card-meta"><span class="city-pill">Coming soon</span></div>
+          </div>
+          <div class="city-card-lock">
+            <img src="/static/images/lock-solid-full.svg">
+          </div>
         </div>
-        <div class="city-card-lock">
-          <svg fill="none" viewBox="0 0 24 24" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
-        </div>
-      </a>
+        <div class="city-tooltip">Coming soon, not available yet</div>
+      </div>
 
     </div>
   </div>

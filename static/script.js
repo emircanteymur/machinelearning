@@ -5,11 +5,32 @@ function heroSearchBtn() {
   var v = document.getElementById('hero-search-input').value.trim().toLowerCase();
   if (!v) return;
   if (v.includes('barcelona') || v.includes('bcn')) { window.location.href = '/barcelona'; return; }
-  if (v.includes('paris'))                          { window.location.href = '/coming-soon/Paris'; return; }
-  if (v.includes('london'))                         { window.location.href = '/coming-soon/London'; return; }
-  if (v.includes('rome') || v.includes('roma'))     { window.location.href = '/coming-soon/Rome'; return; }
-  // Default: go to Barcelona
-  window.location.href = '/barcelona';
+  // Any other city — show tooltip above the search bar
+  var tip = document.getElementById('search-tooltip');
+  if (!tip) return;
+  tip.classList.add('visible');
+  clearTimeout(window._searchTipTimer);
+  window._searchTipTimer = setTimeout(function() { tip.classList.remove('visible'); }, 2500);
+}
+
+var _activeTooltip = null;
+
+function showComingSoon(wrapper) {
+  var tip = wrapper.querySelector('.city-tooltip');
+  if (!tip) return;
+
+  if (_activeTooltip && _activeTooltip !== tip) {
+    _activeTooltip.classList.remove('visible');
+  }
+
+  tip.classList.add('visible');
+  _activeTooltip = tip;
+
+  clearTimeout(wrapper._tipTimer);
+  wrapper._tipTimer = setTimeout(function() {
+    tip.classList.remove('visible');
+    _activeTooltip = null;
+  }, 2500);
 }
 
 
@@ -86,8 +107,20 @@ function loadNeighbourhoods() {
   xhr.send();
 }
 
+/* ── TOOLTIP HELPER ────────────────────────────────────────── */
+function showTooltip(id) {
+  var tip = document.getElementById(id);
+  if (!tip) return;
+  tip.classList.add('visible');
+  clearTimeout(tip._timer);
+  tip._timer = setTimeout(function() { tip.classList.remove('visible'); }, 2500);
+}
+
 /* Predict */
 function predict() {
+  var neighbourhood = document.getElementById('neighbourhood').value;
+  if (!neighbourhood) { showTooltip('predict-tooltip'); return; }
+
   var button = document.getElementById('predict-btn');
   button.disabled = true;
   button.classList.add('loading');
@@ -165,8 +198,13 @@ function runCompare() {
   var n2 = document.getElementById('cmp-2').value;
   var n3 = document.getElementById('cmp-3').value;
 
-  if (!n1 || !n2) { alert('Please select at least 2 neighbourhoods.'); return; }
-  if (n1 === n2 || (n3 && (n3 === n1 || n3 === n2))) { alert('Please select different neighbourhoods.'); return; }
+  if (!n1) { showTooltip('cmp-1-tooltip'); return; }
+  if (!n2) { showTooltip('cmp-2-tooltip'); return; }
+  if (n1 === n2 || (n3 && (n3 === n1 || n3 === n2))) {
+    showTooltip('cmp-1-tooltip');
+    showTooltip('cmp-2-tooltip');
+    return;
+  }
 
   var targets = [n1, n2];
   if (n3) targets.push(n3);
