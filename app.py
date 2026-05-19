@@ -20,9 +20,22 @@ _TEMP_LABEL = {
 _SOCIO_KEYS = ('avg_income', 'employed_pct', 'foreign_pct', 'low_skilled_pct')
 
 
+# ── PAGES ──────────────────────────────────────────────────────
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/barcelona')
+def barcelona():
+    return render_template('barcelona.html')
+
+@app.route('/coming-soon/<city>')
+def coming_soon(city):
+    return render_template('coming_soon.html', city=city)
+
+
+# ── API ────────────────────────────────────────────────────────
 
 @app.route('/api/neighbourhoods')
 def get_neighbourhoods():
@@ -80,6 +93,7 @@ def chat():
 
     reply = handle_message(messages, neighbourhood_data)
     return jsonify({'reply': reply})
+
 
 if __name__ == '__main__':
     app.run(debug=True)

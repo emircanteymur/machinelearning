@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barcelona — RentSmart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a class="nav-brand" href="/">
+        <div class="brand-gem">R</div>
+        <span class="brand-name">Rent<span>Smart</span></span>
+      </a>
+      <div class="nav-links">
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link active" href="/barcelona">Explore</a>
+      </div>
+      <div class="nav-badge">ML-Powered</div>
+    </div>
+  </nav>
+
+  <!-- CITY HERO -->
+  <div class="city-hero">
+    <div class="city-hero-bg"></div>
+    <div class="city-hero-inner">
+      <a class="city-crumb" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        All cities
+      </a>
+      <h1 class="city-hero-title">Barcelona</h1>
+      <div class="city-hero-meta">
+        <span class="city-hero-tag">● Live · ML-Powered</span>
+        <span class="city-hero-sub">73 neighbourhoods · Spain</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <div class="tab-nav-inner">
+      <button class="tab-btn active" id="tab-btn-predict" onclick="switchTab('predict', this)">🏠 Price Estimator</button>
+      <button class="tab-btn" id="tab-btn-compare" onclick="switchTab('compare', this)">⚖️ Compare Neighbourhoods</button>
+    </div>
+  </div>
+
+  <!-- PREDICT TAB -->
+  <div id="tab-predict" class="tab-pane active">
+    <div class="predict-layout">
+
+      <!-- Form panel -->
+      <div class="panel form-panel">
+        <div class="panel-heading">
+          <div class="panel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12L12 3L21 12V20C21 20.5 20.5 21 20 21H15V16H9V21H4C3.5 21 3 20.5 3 20V12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">Get a Price Estimate</div>
+            <div class="panel-sub">Pick a neighbourhood and apartment size</div>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="neighbourhood"><span>Neighbourhood</span></label>
+          <div class="select-wrapper">
+            <select id="neighbourhood">
+              <option value="" disabled selected>Loading…</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="surface-slider">
+            <span>Surface Area</span>
+            <span class="surface-pill"><span id="surface-val">60</span> m²</span>
+          </label>
+          <div class="slider-wrap">
+            <input type="range" id="surface-slider" min="10" max="300" step="5" value="60">
+          </div>
+          <div class="slider-footer">
+            <span class="slider-bound">10 m²</span>
+            <div class="step-buttons">
+              <button id="dec" class="btn-step">−</button>
+              <button id="inc" class="btn-step">+</button>
+            </div>
+            <span class="slider-bound">300 m²</span>
+          </div>
+        </div>
+
+        <button id="predict-btn" class="btn-predict">
+          <span class="btn-text">Predict Price</span>
+          <span class="btn-spinner"></span>
+          <svg class="btn-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor"><path d="M4 10h12M12 6l4 4-4 4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <p class="form-note">Based on 2023 socioeconomic &amp; rental data</p>
+      </div>
+
+      <!-- Results panel -->
+      <div id="results" class="panel results-panel" aria-live="polite">
+        <div id="results-empty" class="results-empty">
+          <div class="empty-graphic">
+            <svg viewBox="0 0 64 64" fill="none"><rect x="8" y="28" width="48" height="28" rx="3" stroke="currentColor" stroke-width="2"/><path d="M2 30L32 8L62 30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="24" y="40" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2"/></svg>
+          </div>
+          <p class="empty-title">Your estimate will appear here</p>
+          <p class="empty-sub">Select a neighbourhood and surface area,<br>then click <strong>Predict Price</strong></p>
+        </div>
+        <div id="results-content" class="results-content">
+          <div class="results-top">
+            <div class="results-location">
+              <svg class="location-pin" viewBox="0 0 20 20"><path d="M10 2C7.24 2 5 4.24 5 7C5 10.75 10 18 10 18C10 18 15 10.75 15 7C15 4.24 12.76 2 10 2ZM10 9C8.9 9 8 8.1 8 7C8 5.9 8.9 5 10 5C11.1 5 12 5.9 12 7C12 8.1 11.1 9 10 9Z"/></svg>
+              <span id="results-title"></span>
+            </div>
+            <span id="temp-badge" class="temp-badge"></span>
+          </div>
+          <div class="price-block">
+            <div class="price-main-wrap">
+              <span class="price-label">Monthly Rent</span>
+              <span id="total" class="price-main"></span>
+            </div>
+            <div class="divider-v"></div>
+            <div class="price-sqm-wrap">
+              <span class="price-label">Price / m²</span>
+              <span id="price-m2" class="price-sqm"></span>
+            </div>
+          </div>
+          <div id="range-box" class="range-box">
+            <div class="range-row">
+              <span class="range-key">Estimated Range</span>
+              <span id="range-val" class="range-val"></span>
+            </div>
+            <p id="label-val" class="range-note"></p>
+          </div>
+          <div class="profile-block">
+            <p class="block-title">Neighbourhood Profile</p>
+            <div id="profile-grid" class="profile-grid"></div>
+            <p class="data-note">Socioeconomic data · Barcelona 2023</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- COMPARE TAB -->
+  <div id="tab-compare" class="tab-pane">
+    <div class="compare-layout">
+
+      <div class="compare-intro">
+        <h2 class="section-title">Compare <span>Neighbourhoods</span></h2>
+        <p>Pick 2 or 3 neighbourhoods to compare them side by side across rent, income, employment, and more.</p>
+      </div>
+
+      <div class="compare-select-row">
+        <div class="compare-select-group">
+          <label>Neighbourhood 1</label>
+          <div class="compare-select-wrap">
+            <select id="cmp-1"><option value="" disabled selected>Choose…</option></select>
+          </div>
+        </div>
+        <div class="compare-select-group">
+          <label>Neighbourhood 2</label>
+          <div class="compare-select-wrap">
+            <select id="cmp-2"><option value="" disabled selected>Choose…</option></select>
+          </div>
+        </div>
+        <div class="compare-select-group">
+          <label>Neighbourhood 3 <small style="color:var(--muted)">(optional)</small></label>
+          <div class="compare-select-wrap">
+            <select id="cmp-3"><option value="" selected>— None —</option></select>
+          </div>
+        </div>
+      </div>
+      <button class="btn-compare" onclick="runCompare()">Compare →</button>
+
+      <div id="compare-loading" class="compare-loading">
+        <div class="compare-spinner"></div>
+        Fetching data…
+      </div>
+
+      <div id="compare-results" class="compare-results">
+        <div class="compare-table-wrap">
+          <table class="compare-table" id="cmp-table">
+            <thead id="cmp-thead"></thead>
+            <tbody id="cmp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="badge-row">
+          <div class="badge-explain"><div class="dot dot-best"></div>Best value</div>
+          <div class="badge-explain"><div class="dot dot-worst"></div>Highest cost</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CHAT TOGGLE -->
+  <button id="chat-toggle" class="chat-toggle" aria-label="Open advisor">
+    <svg class="chat-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="chat-toggle-text">Ask me anything</span>
+  </button>
+
+  <!-- CHAT PANEL -->
+  <div id="chat-panel" class="chat-panel" aria-hidden="true">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-avatar">AI</div>
+        <div class="chat-header-info">
+          <p class="chat-name">Neighbourhood Advisor</p>
+          <p class="chat-status">Powered by Barcelona data</p>
+        </div>
+      </div>
+      <button id="chat-restart" class="chat-restart-btn" title="Restart">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 10a6 6 0 1 0 1.1-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M4 6v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="Ask about Barcelona neighbourhoods…" autocomplete="off">
+      <button id="chat-send">
+        <svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12M12 6l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
